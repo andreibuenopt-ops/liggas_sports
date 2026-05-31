@@ -98,22 +98,25 @@ def gerar_tabela():
     fmt = cfg.get("formato", "")
     times = state.get("times", [])
 
+    n_grupos         = max(1, int(cfg.get("n_grupos", 1)))
+    class_por_grupo  = max(1, int(cfg.get("classificados_por_grupo", 2)))
+    ida_volta        = cfg.get("ida_volta", True)
+    ida_volta_grupos = cfg.get("ida_volta_grupos", False)
+    ida_volta_mata   = cfg.get("ida_volta_mata", False)
+    tipo_sorteio     = cfg.get("tipo_sorteio", "aleatorio")
+
     if fmt == "Pontos Corridos":
-        jogos = _gerar_pontos_corridos(times, cfg.get("ida_volta", True))
+        jogos = _gerar_pontos_corridos(times, ida_volta)
         state["jogos"] = jogos
         state["fase_atual"] = "liga"
 
-    elif fmt == "Grupos":
-        grupos = _sortear_grupos(times, cfg.get("n_grupos", 4), cfg.get("tipo_sorteio","aleatorio"))
+    elif fmt in ("Grupos", "Chaves Cruzadas", "Pontos Corridos + Mata-Mata"):
+        # n_grupos=1 → grupo único, todos jogam entre si → X se classificam pro mata-mata
+        # n_grupos=2 → 2 chaves, 1 a 4 classificados por chave
+        # n_grupos=N → N grupos, class_por_grupo de cada
+        grupos = _sortear_grupos(times, n_grupos, tipo_sorteio)
         state["grupos"] = grupos
-        jogos = _gerar_jogos_grupos(grupos, cfg.get("ida_volta_grupos", False))
-        state["jogos"] = jogos
-        state["fase_atual"] = "grupos"
-
-    elif fmt in ("Chaves Cruzadas", "Pontos Corridos + Mata-Mata"):
-        grupos = _sortear_grupos(times, 2, cfg.get("tipo_sorteio","aleatorio"))
-        state["grupos"] = grupos
-        jogos = _gerar_jogos_grupos(grupos, cfg.get("ida_volta_grupos", False))
+        jogos = _gerar_jogos_grupos(grupos, ida_volta_grupos)
         state["jogos"] = jogos
         state["fase_atual"] = "grupos"
 
@@ -121,7 +124,7 @@ def gerar_tabela():
         ids = [t["nome"] for t in times]
         random.shuffle(ids)
         fase = _nome_fase(len(ids))
-        jogos = _gerar_mata_mata_jogos(ids, fase, cfg.get("ida_volta_mata", False))
+        jogos = _gerar_mata_mata_jogos(ids, fase, ida_volta_mata)
         state["jogos"] = jogos
         state["fase_atual"] = "mata_mata"
         state["fase_mm_atual"] = fase
